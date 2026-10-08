@@ -332,3 +332,120 @@ h1{margin:7px 0 6px;font-size:clamp(29px,7.5vw,46px);line-height:1.03;letter-spa
   min-height:calc(var(--topbar-h) + env(safe-area-inset-top));
   padding:calc(10px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left));
 }
+
+
+/* === V3: revisão UX/UI mobile, safe-area e modais === */
+html,body{max-width:100%;}
+body{
+  min-height:100dvh;
+  padding-top:0;
+  overscroll-behavior-y:none;
+}
+.app-shell{min-height:100dvh;}
+
+/* Cabeçalho: nunca sobrepõe o conteúdo nem a área de status do iPhone. */
+.topbar{
+  position:relative !important;
+  inset:auto !important;
+  z-index:20;
+  min-height:var(--topbar-h) !important;
+  padding:10px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left)) !important;
+  background:var(--bg) !important;
+  border-bottom:1px solid var(--border);
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+}
+
+/* Quando instalado como PWA, reserva a safe-area acima do cabeçalho uma única vez. */
+@media (display-mode: standalone){
+  body{padding-top:env(safe-area-inset-top);}
+}
+
+/* O atributo hidden precisa vencer qualquer display definido pelo componente no Safari. */
+[hidden]{display:none !important;}
+.modal[hidden],.backdrop[hidden],.pomodoro-float[hidden],.float-controls[hidden]{display:none !important;}
+
+/* Impede a página de rolar por trás de drawers/modais. */
+body.has-overlay{overflow:hidden;touch-action:none;}
+body.has-overlay .modal-card,
+body.has-overlay .settings-drawer{touch-action:auto;}
+
+/* Instalação: bottom sheet realmente dispensável, acessível e dentro da área útil. */
+.modal{
+  position:fixed;
+  z-index:90;
+  inset:0;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:12px max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+  background:rgba(0,0,0,.66);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.modal-card{
+  position:relative;
+  width:min(100%,520px);
+  max-height:calc(100dvh - env(safe-area-inset-top) - 28px);
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:var(--surface);
+  box-shadow:0 24px 70px rgba(0,0,0,.42);
+  padding:22px 20px max(20px,env(safe-area-inset-bottom));
+}
+.modal-close{
+  z-index:2;
+  width:46px;
+  height:46px;
+  top:12px;
+  right:12px;
+  touch-action:manipulation;
+}
+.install-dismiss{width:100%;margin-top:9px;}
+.install-steps{padding-right:8px;}
+
+/* Drawer de configurações também respeita a área útil em telas pequenas. */
+.settings-drawer{
+  max-height:calc(100dvh - env(safe-area-inset-top) - 10px);
+}
+.settings-scroll{
+  max-height:calc(100dvh - env(safe-area-inset-top) - 92px);
+}
+
+/* UX do topo em iPhone: mantém nome e ações legíveis sem colisões. */
+.brand-wrap{flex:1 1 auto;min-width:0;}
+.brand-wrap>div:last-child{min-width:0;}
+.brand-title,.brand-subtitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.top-actions{flex:0 0 auto;}
+
+@media (max-width:520px){
+  .topbar{gap:8px !important;}
+  .brand-mark{width:42px;height:42px;flex-basis:42px;}
+  .brand-title{font-size:15px;}
+  .brand-subtitle{max-width:132px;font-size:12px;}
+  .top-actions{gap:6px;}
+  .icon-btn{width:44px;height:44px;border-radius:14px;}
+  .main-content{padding-top:16px;}
+  .hero-card,.stage-card,.quick-rule-card,.pomodoro-card{border-radius:20px;}
+  .modal{padding-left:10px;padding-right:10px;}
+  .modal-card{border-radius:22px;padding-left:18px;padding-right:18px;}
+  .modal-card h2{font-size:28px;padding-right:50px;}
+  .install-steps{font-size:17px;line-height:1.65;}
+}
+
+@media (max-width:370px){
+  .brand-subtitle{display:none;}
+  .brand-title{font-size:14px;}
+  .top-actions{gap:4px;}
+  .icon-btn{width:40px;height:40px;}
+}
+
+/* Desktop/tablet: cabeçalho alinhado ao conteúdo, sem faixa translúcida sobre a página. */
+@media (min-width:980px){
+  .topbar{
+    padding-left:max(calc((100% - 1080px)/2),24px) !important;
+    padding-right:max(calc((100% - 1080px)/2),24px) !important;
+  }
+}

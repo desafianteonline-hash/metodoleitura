@@ -447,12 +447,18 @@
     $('#backdrop').hidden = false;
     $('#settingsDrawer').classList.add('is-open');
     $('#settingsDrawer').setAttribute('aria-hidden', 'false');
+    document.body.classList.add('has-overlay');
   }
 
   function closeSettings() {
     $('#settingsDrawer').classList.remove('is-open');
     $('#settingsDrawer').setAttribute('aria-hidden', 'true');
-    setTimeout(() => { if (!$('#settingsDrawer').classList.contains('is-open')) $('#backdrop').hidden = true; }, 220);
+    setTimeout(() => {
+      if (!$('#settingsDrawer').classList.contains('is-open')) {
+        $('#backdrop').hidden = true;
+        document.body.classList.remove('has-overlay');
+      }
+    }, 220);
   }
 
   function isIOS() {
@@ -470,11 +476,17 @@
       deferredInstallPrompt.userChoice.finally(() => { deferredInstallPrompt = null; });
       return;
     }
-    $('#installModal').hidden = false;
+    const modal = $('#installModal');
+    modal.hidden = false;
+    document.body.classList.add('has-overlay');
+    window.setTimeout(() => $('#closeInstallModal')?.focus(), 0);
   }
 
   function closeInstallModal() {
-    $('#installModal').hidden = true;
+    const modal = $('#installModal');
+    modal.hidden = true;
+    document.body.classList.remove('has-overlay');
+    $('#installBtn')?.focus({ preventScroll:true });
   }
 
   function exportBackup() {
@@ -800,8 +812,19 @@
     $('#installBtn').addEventListener('click', openInstallFlow);
     $('#installFromSettings').addEventListener('click', openInstallFlow);
     $('#closeInstallModal').addEventListener('click', closeInstallModal);
-    $('#installModal').addEventListener('click', e => { if (e.target.id === 'installModal') closeInstallModal(); });
+    $('#dismissInstallModal')?.addEventListener('click', closeInstallModal);
+
+    // pointerup é mais confiável que click em alguns previews/versões do Safari iOS.
+    $('#installModal').addEventListener('pointerup', e => {
+      if (e.target === $('#installModal')) closeInstallModal();
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !$('#installModal').hidden) closeInstallModal();
+    });
+
     $('#shareAppBtn').addEventListener('click', async () => {
+      closeInstallModal();
       if (navigator.share) {
         try { await navigator.share({ title: 'Método de Leitura', text: 'Guia interativo do método de leitura', url: location.href }); } catch (_) {}
       } else {
@@ -874,6 +897,9 @@
 
   function init() {
     initializeTheme();
+    $('#installModal').hidden = true;
+    $('#backdrop').hidden = true;
+    document.body.classList.remove('has-overlay');
     attachEvents();
     const requestedView = new URLSearchParams(location.search).get('view');
     currentView = ['method','checklist','pomodoro'].includes(requestedView) ? requestedView : 'method';
