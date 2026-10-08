@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'metodo_leitura_pwa_state_v1';
   const THEME_COOKIE = 'metodo_leitura_theme';
-  const APP_VERSION = 1;
+  const APP_VERSION = 2;
 
   const stages = [
     {
@@ -96,7 +96,8 @@
     completedStages: [],
     readingSessionsSinceBrain: 0,
     updatedAt: new Date().toISOString(),
-    timer: { preset: 25, remaining: 1500, mode: 'focus', running: false, startedAt: null }
+    timer: { preset: 25, remaining: 1500, mode: 'focus', running: false, active: false, startedAt: null },
+    settings: { sounds: true, soundVolume: 65, floatTimer: true, wakeLock: true, notifications: false }
   });
 
   let memoryFallback = null;
@@ -104,6 +105,11 @@
   let deferredInstallPrompt = null;
   let timerHandle = null;
   let toastHandle = null;
+  let audioContext = null;
+  let wakeLockSentinel = null;
+  let lastCountdownSecond = null;
+  let currentView = 'method';
+  let floatExpanded = false;
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => [...document.querySelectorAll(sel)];
@@ -140,7 +146,15 @@
       base.timer.remaining = clampInt(candidate.timer.remaining, 0, 60*60, base.timer.preset*60);
       base.timer.mode = candidate.timer.mode === 'break' ? 'break' : 'focus';
       base.timer.running = Boolean(candidate.timer.running);
+      base.timer.active = Boolean(candidate.timer.active ?? candidate.timer.running);
       base.timer.startedAt = candidate.timer.startedAt || null;
+    }
+    if (candidate.settings && typeof candidate.settings === 'object') {
+      base.settings.sounds = candidate.settings.sounds !== false;
+      base.settings.soundVolume = clampInt(candidate.settings.soundVolume, 0, 100, 65);
+      base.settings.floatTimer = candidate.settings.floatTimer !== false;
+      base.settings.wakeLock = candidate.settings.wakeLock !== false;
+      base.settings.notifications = Boolean(candidate.settings.notifications);
     }
     return base;
   }
@@ -385,6 +399,16 @@
     $('#headerBookName').textContent = state.bookTitle || 'Meu livro';
     $('#bookTitleInput').value = state.bookTitle || '';
     $('#pageInput').value = state.page || '';
+    if ($('#soundToggle')) $('#soundToggle').checked = state.settings.sounds;
+    if ($('#soundVolume')) $('#soundVolume').value = String(state.settings.soundVolume);
+    if ($('#soundVolumeValue')) $('#soundVolumeValue').textContent = `${state.settings.soundVolume}%`;
+    if ($('#floatTimerToggle')) $('#floatTimerToggle').checked = state.settings.floatTimer;
+    if ($('#wakeLockToggle')) $('#wakeLockToggle').checked = state.settings.wakeLock;
+    if ($('#notificationStatus')) $('#notificationStatus').textContent = notificationPermissionText();
+    if ($('#notificationBtn')) {
+      $('#notificationBtn').textContent = ('Notification' in window && Notification.permission === 'granted') ? 'Avisos do sistema ativados' : 'Ativar avisos do sistema';
+      $('#notificationBtn').disabled = ('Notification' in window && Notification.permission === 'denied');
+    }
   }
 
   function renderAll(renderMethodToo=true) {
@@ -399,8 +423,10 @@
   }
 
   function setView(name) {
-    $$('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === name));
-    $$('.nav-item').forEach(b => b.classList.toggle('is-active', b.dataset.target === name));
+    currentView = ['method','checklist','pomodoro'].includes(name) ? name : 'method';
+    $$('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === currentView));
+    $$('.nav-item').forEach(b => b.classList.toggle('is-active', b.dataset.target === currentView));
+    renderFloatingTimer();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -506,6 +532,133 @@
     toast('Progresso apagado.');
   }
 
+  function audioCtor() {
+    return window.AudioContext || window.webkitAudioContext || null;
+  }
+
+  async function ensureAudioContext() {
+    const Ctor = audioCtor();
+    if (!Ctor) return null;
+    if (!audioContext) audioContext = new Ctor();
+    try {
+      if (audioContext.state === 'suspended') await audioContext.resume();
+    } catch (_) {}
+    return audioContext;
+  }
+
+  async function playCue(name, force=false) {
+    if (!force && !state.settings.sounds) return;
+    const ctx = await ensureAudioContext();
+    if (!ctx) return;
+
+    const volume = Math.max(0, Math.min(1, Number(state.settings.soundVolume || 0) / 100));
+    if (volume <= 0 && !force) return;
+    const gainBase = Math.max(.015, volume * .16);
+    const patterns = {
+      start: [[660,.08,0],[880,.12,.10]],
+      pause: [[520,.10,0],[390,.14,.11]],
+      resume: [[620,.07,0],[820,.09,.09]],
+      countdown: [[920,.055,0]],
+      finish: [[720,.10,0],[920,.12,.12],[1180,.25,.26]],
+      breakStart: [[520,.08,0],[660,.12,.10]],
+      breakEnd: [[760,.09,0],[620,.09,.11],[900,.22,.23]],
+      test: [[660,.08,0],[880,.10,.10],[1100,.18,.22]]
+    };
+    const pattern = patterns[name] || patterns.test;
+    const now = ctx.currentTime + .02;
+    pattern.forEach(([freq,duration,delay]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, now + delay);
+      gain.gain.exponentialRampToValueAtTime(force ? Math.max(.04,gainBase) : gainBase, now + delay + .012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + duration + .03);
+    });
+  }
+
+  async function requestWakeLock() {
+    if (!state.settings.wakeLock || !state.timer.running || document.visibilityState !== 'visible') return;
+    if (!('wakeLock' in navigator)) return;
+    try {
+      if (wakeLockSentinel && !wakeLockSentinel.released) return;
+      wakeLockSentinel = await navigator.wakeLock.request('screen');
+      wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; }, { once:true });
+    } catch (_) {}
+  }
+
+  async function releaseWakeLock() {
+    try {
+      if (wakeLockSentinel && !wakeLockSentinel.released) await wakeLockSentinel.release();
+    } catch (_) {}
+    wakeLockSentinel = null;
+  }
+
+  function notificationPermissionText() {
+    if (!('Notification' in window)) return 'Notificações não são suportadas neste navegador.';
+    if (Notification.permission === 'granted') return 'Avisos do sistema ativados.';
+    if (Notification.permission === 'denied') return 'Avisos bloqueados nas configurações do sistema.';
+    return 'Toque para permitir avisos quando o navegador oferecer suporte.';
+  }
+
+  async function requestNotifications() {
+    if (!('Notification' in window)) {
+      toast('Este navegador não oferece notificações web.');
+      renderHeaderAndSettings();
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      state.settings.notifications = permission === 'granted';
+      saveState();
+      renderHeaderAndSettings();
+      toast(permission === 'granted' ? 'Avisos do sistema ativados.' : 'Permissão de avisos não concedida.');
+    } catch (_) {
+      toast('Não foi possível solicitar a permissão de avisos.');
+    }
+  }
+
+  async function showSystemNotification(title, body) {
+    if (!state.settings.notifications || !('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, {
+          body,
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-192.png',
+          tag: 'metodo-leitura-pomodoro',
+          renotify: true,
+          data: { url: location.origin + '/?view=pomodoro' }
+        });
+      } else {
+        new Notification(title, { body, icon: '/icons/icon-192.png' });
+      }
+    } catch (_) {}
+  }
+
+  function renderFloatingTimer() {
+    const float = $('#pomodoroFloat');
+    if (!float) return;
+    const visible = Boolean(state.settings.floatTimer && state.timer.active && currentView !== 'pomodoro');
+    float.hidden = !visible;
+    if (!visible) return;
+
+    const remaining = timerRemainingFromTimestamp();
+    const min = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+    $('#floatTimerValue').textContent = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    $('#floatTimerMode').textContent = state.timer.mode === 'break' ? 'Pausa' : (state.timer.running ? 'Foco em andamento' : 'Foco pausado');
+    $('#floatPauseResume').textContent = state.timer.running ? 'Pausar' : 'Retomar';
+    $('#floatControls').hidden = !floatExpanded;
+    $('#floatToggle').setAttribute('aria-expanded', String(floatExpanded));
+    float.classList.toggle('is-expanded', floatExpanded);
+  }
+
   function timerRemainingFromTimestamp() {
     if (!state.timer.running || !state.timer.startedAt) return state.timer.remaining;
     const elapsed = Math.max(0, Math.floor((Date.now() - new Date(state.timer.startedAt).getTime()) / 1000));
@@ -517,29 +670,47 @@
     const min = Math.floor(remaining / 60);
     const sec = remaining % 60;
     $('#timerValue').textContent = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-    $('#timerMode').textContent = state.timer.mode === 'break' ? 'Pausa' : 'Foco';
+    $('#timerMode').textContent = state.timer.mode === 'break' ? (state.timer.running ? 'Pausa em andamento' : 'Pausa') : (state.timer.running ? 'Foco em andamento' : 'Foco');
     $$('.pill-btn').forEach(btn => btn.classList.toggle('is-selected', Number(btn.dataset.minutes) === state.timer.preset));
+    renderFloatingTimer();
   }
 
   function tickTimer() {
     const remaining = timerRemainingFromTimestamp();
+
+    if (state.timer.mode === 'focus' && remaining > 0 && remaining <= 5 && remaining !== lastCountdownSecond) {
+      lastCountdownSecond = remaining;
+      playCue('countdown');
+    } else if (remaining > 5) {
+      lastCountdownSecond = null;
+    }
+
     if (remaining <= 0) {
-      stopTimer(false);
-      if (state.timer.mode === 'focus') {
+      const completedMode = state.timer.mode;
+      stopTimer(false, false);
+      lastCountdownSecond = null;
+
+      if (completedMode === 'focus') {
         state.timer.mode = 'break';
         state.timer.remaining = 300;
         state.timer.startedAt = null;
         state.timer.running = false;
-        saveState();
-        renderTimer();
+        state.timer.active = true;
+        playCue('finish');
+        showSystemNotification('Pomodoro concluído', 'Foco concluído. Faça 5 minutos de pausa.');
         toast('Foco concluído. Faça 5 minutos de pausa.');
       } else {
         state.timer.mode = 'focus';
         state.timer.remaining = state.timer.preset * 60;
-        saveState();
-        renderTimer();
+        state.timer.startedAt = null;
+        state.timer.running = false;
+        state.timer.active = false;
+        playCue('breakEnd');
+        showSystemNotification('Pausa concluída', 'Hora de voltar ao foco quando estiver pronto.');
         toast('Pausa concluída.');
       }
+      saveState();
+      renderTimer();
       return;
     }
     renderTimer();
@@ -547,37 +718,49 @@
 
   function startTimer() {
     if (state.timer.running) return;
+    const initial = state.timer.mode === 'break' ? 300 : state.timer.preset * 60;
+    const isResume = state.timer.active && state.timer.remaining < initial;
     state.timer.running = true;
+    state.timer.active = true;
     state.timer.startedAt = new Date().toISOString();
     saveState();
     clearInterval(timerHandle);
     timerHandle = setInterval(tickTimer, 500);
+    playCue(isResume ? 'resume' : (state.timer.mode === 'break' ? 'breakStart' : 'start'));
+    requestWakeLock();
     renderTimer();
   }
 
-  function stopTimer(persistRemaining=true) {
+  function stopTimer(persistRemaining=true, withSound=true) {
+    const wasRunning = state.timer.running;
     if (persistRemaining && state.timer.running) state.timer.remaining = timerRemainingFromTimestamp();
     state.timer.running = false;
     state.timer.startedAt = null;
     clearInterval(timerHandle);
     timerHandle = null;
+    releaseWakeLock();
+    if (withSound && wasRunning) playCue('pause');
     saveState();
     renderTimer();
   }
 
   function resetTimer() {
-    stopTimer(false);
+    stopTimer(false, false);
     state.timer.mode = 'focus';
     state.timer.remaining = state.timer.preset * 60;
+    state.timer.active = false;
+    lastCountdownSecond = null;
     saveState();
     renderTimer();
   }
 
   function setTimerPreset(minutes) {
-    stopTimer(false);
+    stopTimer(false, false);
     state.timer.preset = minutes === 15 ? 15 : 25;
     state.timer.mode = 'focus';
     state.timer.remaining = state.timer.preset * 60;
+    state.timer.active = false;
+    lastCountdownSecond = null;
     saveState();
     renderTimer();
   }
@@ -631,6 +814,44 @@
     $('#timerReset').addEventListener('click', resetTimer);
     $$('.pill-btn').forEach(btn => btn.addEventListener('click', () => setTimerPreset(Number(btn.dataset.minutes))));
 
+    $('#soundToggle')?.addEventListener('change', e => {
+      state.settings.sounds = e.target.checked;
+      saveState();
+      if (state.settings.sounds) playCue('resume', true);
+    });
+    $('#soundVolume')?.addEventListener('input', e => {
+      state.settings.soundVolume = clampInt(e.target.value, 0, 100, 65);
+      $('#soundVolumeValue').textContent = `${state.settings.soundVolume}%`;
+      saveState();
+    });
+    $('#testSoundBtn')?.addEventListener('click', () => playCue('test', true));
+    $('#floatTimerToggle')?.addEventListener('change', e => {
+      state.settings.floatTimer = e.target.checked;
+      saveState();
+      renderFloatingTimer();
+    });
+    $('#wakeLockToggle')?.addEventListener('change', e => {
+      state.settings.wakeLock = e.target.checked;
+      saveState();
+      if (state.settings.wakeLock && state.timer.running) requestWakeLock();
+      else releaseWakeLock();
+    });
+    $('#notificationBtn')?.addEventListener('click', requestNotifications);
+
+    $('#floatToggle')?.addEventListener('click', () => {
+      floatExpanded = !floatExpanded;
+      renderFloatingTimer();
+    });
+    $('#floatPauseResume')?.addEventListener('click', () => {
+      if (state.timer.running) stopTimer(true, true);
+      else startTimer();
+    });
+    $('#floatOpenPomodoro')?.addEventListener('click', () => {
+      floatExpanded = false;
+      setView('pomodoro');
+    });
+    $('#floatReset')?.addEventListener('click', resetTimer);
+
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredInstallPrompt = e;
@@ -642,17 +863,26 @@
     });
 
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && state.timer.running) tickTimer();
+      if (!document.hidden && state.timer.running) {
+        tickTimer();
+        requestWakeLock();
+      } else if (document.hidden) {
+        releaseWakeLock();
+      }
     });
   }
 
   function init() {
     initializeTheme();
     attachEvents();
+    const requestedView = new URLSearchParams(location.search).get('view');
+    currentView = ['method','checklist','pomodoro'].includes(requestedView) ? requestedView : 'method';
     renderAll();
+    setView(currentView);
     if (state.timer.running) {
       timerHandle = setInterval(tickTimer, 500);
       tickTimer();
+      requestWakeLock();
     }
     if (isIOS()) $('#installHelpText').textContent = 'No iPhone/iPad: Safari → Compartilhar → Adicionar à Tela de Início.';
     registerServiceWorker();

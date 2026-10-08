@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0f0e" id="themeColorMeta">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Método de Leitura">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
@@ -125,6 +125,22 @@
       </section>
     </main>
 
+    <div class="pomodoro-float" id="pomodoroFloat" hidden aria-live="polite">
+      <button class="float-summary" id="floatToggle" type="button" aria-expanded="false" aria-controls="floatControls">
+        <span class="float-icon" aria-hidden="true">🍅</span>
+        <span class="float-copy">
+          <strong id="floatTimerValue">25:00</strong>
+          <small id="floatTimerMode">Foco</small>
+        </span>
+        <span class="float-chevron" aria-hidden="true">⌃</span>
+      </button>
+      <div class="float-controls" id="floatControls" hidden>
+        <button class="float-control primary" id="floatPauseResume" type="button">Pausar</button>
+        <button class="float-control" id="floatOpenPomodoro" type="button">Abrir</button>
+        <button class="float-control danger" id="floatReset" type="button">Parar</button>
+      </div>
+    </div>
+
     <nav class="bottom-nav" aria-label="Navegação principal">
       <button class="nav-item is-active" type="button" data-target="method">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 5.5c2.9-.6 5.1-.1 8 1.7v12c-2.9-1.8-5.1-2.3-8-1.7v-12Zm16 0c-2.9-.6-5.1-.1-8 1.7v12c2.9-1.8 5.1-2.3 8-1.7v-12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
@@ -169,6 +185,47 @@
           <button class="choice-btn" id="lightChoice" type="button">☀ Tema claro</button>
         </div>
         <p class="settings-note">O tema escuro é o padrão. Sua escolha fica salva neste dispositivo.</p>
+      </section>
+
+      <section class="settings-section">
+        <h3>Pomodoro e sons</h3>
+        <label class="switch-row">
+          <span>
+            <strong>Sons do Pomodoro</strong>
+            <small>Toques ao iniciar, pausar, retomar, nos 5 segundos finais e ao concluir.</small>
+          </span>
+          <input id="soundToggle" type="checkbox" role="switch">
+        </label>
+
+        <label class="field-label" for="soundVolume">Volume dos sons</label>
+        <div class="range-row">
+          <input id="soundVolume" class="range-input" type="range" min="0" max="100" step="5" value="65">
+          <output id="soundVolumeValue" for="soundVolume">65%</output>
+        </div>
+        <button class="wide-btn" id="testSoundBtn" type="button">Testar som</button>
+
+        <label class="switch-row">
+          <span>
+            <strong>Timer flutuante dentro do app</strong>
+            <small>Mostra tempo e controles enquanto você usa Método ou Checklist.</small>
+          </span>
+          <input id="floatTimerToggle" type="checkbox" role="switch">
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <strong>Manter tela ativa</strong>
+            <small>Evita o bloqueio da tela durante o Pomodoro, quando o navegador permitir.</small>
+          </span>
+          <input id="wakeLockToggle" type="checkbox" role="switch">
+        </label>
+
+        <div class="settings-actions-stack">
+          <button class="wide-btn" id="notificationBtn" type="button">Ativar avisos do sistema</button>
+          <p class="settings-note" id="notificationStatus">Os avisos dependem do suporte e da permissão do navegador.</p>
+        </div>
+
+        <p class="settings-note"><strong>Importante:</strong> o timer flutuante funciona dentro deste PWA. Um site/PWA não pode desenhar um ícone sobre outros aplicativos no iPhone. Para isso, seria necessário um aplicativo nativo com Live Activity/Dynamic Island.</p>
       </section>
 
       <section class="settings-section">

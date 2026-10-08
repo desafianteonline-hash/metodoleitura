@@ -1,0 +1,38 @@
+MÉTODO DE LEITURA — PACOTE CORRIGIDO PARA VERCEL
+
+IMPORTANTE
+Este ZIP foi corrigido para que o arquivo index.html fique NA RAIZ do projeto.
+Não suba uma pasta externa contendo outra pasta do projeto.
+
+ESTRUTURA CORRETA
+/index.html
+/styles.css
+/app.js
+/manifest.webmanifest
+/service-worker.js
+/vercel.json
+/icons/...
+
+OPÇÃO A — NOVO DEPLOY
+1. Descompacte este ZIP.
+2. Na Vercel, crie um novo projeto/deploy.
+3. Envie a pasta descompactada em que o arquivo index.html aparece imediatamente na raiz.
+4. Framework Preset: Other (ou nenhum framework).
+5. Build Command: deixe vazio.
+6. Output Directory: deixe vazio.
+7. Root Directory: deixe na raiz do projeto.
+8. Faça o deploy.
+
+OPÇÃO B — CORRIGIR O PROJETO EXISTENTE
+Se você manteve a estrutura antiga com uma pasta chamada metodo_leitura_pwa:
+1. Vercel > Project > Settings > Build and Deployment.
+2. Root Directory: selecione metodo_leitura_pwa.
+3. Salve.
+4. Vá para Deployments e faça Redeploy.
+
+SE USAR ESTE PACOTE NOVO
+Não configure Root Directory como subpasta, pois index.html já está na raiz.
+
+IPHONE / IPAD
+Depois que a URL abrir corretamente:
+Safari > Compartilhar > Adicionar à Tela de Início.
