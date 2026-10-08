@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f0e" id="themeColorMeta">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Método de Leitura">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <title>Método de Leitura</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 5.5c2.9-.6 5.1-.1 8 1.7v12c-2.9-1.8-5.1-2.3-8-1.7v-12Zm16 0c-2.9-.6-5.1-.1-8 1.7v12c2.9-1.8 5.1-2.3 8-1.7v-12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="brand-title">Método de Leitura</div>
+          <div class="brand-subtitle" id="headerBookName">Meu livro</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" id="installBtn" type="button" aria-label="Instalar aplicativo" title="Instalar aplicativo">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Alternar tema" title="Alternar tema">
+          <span class="theme-icon moon" aria-hidden="true">☾</span>
+          <span class="theme-icon sun" aria-hidden="true">☀</span>
+        </button>
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="Abrir configurações" title="Configurações">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm8.3 3.8-.9-.5a7.8 7.8 0 0 0-.5-1.3l.3-1-2.1-2.1-1 .3a8 8 0 0 0-1.3-.5l-.5-.9h-3l-.5.9a8 8 0 0 0-1.3.5l-1-.3-2.1 2.1.3 1a7.8 7.8 0 0 0-.5 1.3l-.9.5v3l.9.5c.1.4.3.9.5 1.3l-.3 1 2.1 2.1 1-.3c.4.2.9.4 1.3.5l.5.9h3l.5-.9c.4-.1.9-.3 1.3-.5l1 .3 2.1-2.1-.3-1c.2-.4.4-.9.5-1.3l.9-.5v-3Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="view is-active" id="view-method" data-view="method">
+        <div class="hero-card">
+          <div class="hero-topline">
+            <div>
+              <span class="eyebrow">PRÓXIMO PASSO</span>
+              <h1 id="heroTitle">É um livro novo?</h1>
+              <p id="heroDescription">Comece pela pré-leitura.</p>
+            </div>
+            <div class="stage-chip" id="stageChip">Etapa 1 de 7</div>
+          </div>
+          <div class="progress-track" aria-label="Progresso geral">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="hero-meta">
+            <span id="progressText">0% do método</span>
+            <span id="sessionCounter">0 sessões desde o 2º cérebro</span>
+          </div>
+        </div>
+
+        <section class="stage-card" id="stageCard" aria-live="polite">
+          <div class="stage-header">
+            <div class="stage-number" id="stageNumber">01</div>
+            <div class="stage-copy">
+              <h2 id="stageTitle">Livro novo</h2>
+              <p id="stageSubtitle">Prepare o cérebro antes de começar.</p>
+            </div>
+          </div>
+
+          <div class="info-box" id="stageIntro"></div>
+          <div class="check-list" id="stageChecklist"></div>
+
+          <div class="stage-support" id="stageSupport" hidden></div>
+
+          <div class="stage-actions" id="stageActions"></div>
+          <p class="inline-message" id="stageMessage" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="quick-rule-card">
+          <span class="eyebrow">REGRA RÁPIDA</span>
+          <div class="rule-grid">
+            <div><strong>Terminou de ler?</strong><span>1ª revisão.</span></div>
+            <div><strong>Voltou ao livro?</strong><span>2ª revisão + Post-it.</span></div>
+            <div><strong>3 sessões?</strong><span>Segundo Cérebro.</span></div>
+            <div><strong>Fim do livro?</strong><span>Plano de Ação.</span></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" id="view-checklist" data-view="checklist">
+        <div class="section-heading">
+          <span class="eyebrow">VISÃO GERAL</span>
+          <h1>Checklist do método</h1>
+          <p>Veja o que já foi concluído e o que ainda falta neste livro.</p>
+        </div>
+        <div class="overview-list" id="overviewList"></div>
+      </section>
+
+      <section class="view" id="view-pomodoro" data-view="pomodoro">
+        <div class="section-heading">
+          <span class="eyebrow">BÔNUS OPCIONAL</span>
+          <h1>Pomodoro</h1>
+          <p>Use apenas para vencer a procrastinação. Ele não substitui nenhuma etapa do método.</p>
+        </div>
+        <div class="pomodoro-card">
+          <div class="timer-ring">
+            <div class="timer-value" id="timerValue">25:00</div>
+            <div class="timer-mode" id="timerMode">Foco</div>
+          </div>
+          <div class="timer-presets">
+            <button class="pill-btn is-selected" data-minutes="25" type="button">25 min</button>
+            <button class="pill-btn" data-minutes="15" type="button">15 min</button>
+          </div>
+          <div class="timer-actions">
+            <button class="primary-btn" id="timerStart" type="button">Iniciar</button>
+            <button class="secondary-btn" id="timerPause" type="button">Pausar</button>
+            <button class="secondary-btn" id="timerReset" type="button">Reiniciar</button>
+          </div>
+          <div class="timer-tip">25 min de foco → 5 min de pausa.</div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegação principal">
+      <button class="nav-item is-active" type="button" data-target="method">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 5.5c2.9-.6 5.1-.1 8 1.7v12c-2.9-1.8-5.1-2.3-8-1.7v-12Zm16 0c-2.9-.6-5.1-.1-8 1.7v12c2.9-1.8 5.1-2.3 8-1.7v-12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        <span>Método</span>
+      </button>
+      <button class="nav-item" type="button" data-target="checklist">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 6h13M7 12h13M7 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Checklist</span>
+      </button>
+      <button class="nav-item" type="button" data-target="pomodoro">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 2h6M12 6a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm0 4v4l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Pomodoro</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="backdrop" id="backdrop" hidden></div>
+
+  <aside class="settings-drawer" id="settingsDrawer" aria-hidden="true" aria-label="Configurações">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <div>
+        <span class="eyebrow">CONFIGURAÇÕES</span>
+        <h2>Preferências e dados</h2>
+      </div>
+      <button class="icon-btn" id="closeSettingsBtn" type="button" aria-label="Fechar configurações">✕</button>
+    </div>
+
+    <div class="settings-scroll">
+      <section class="settings-section">
+        <h3>Livro atual</h3>
+        <label class="field-label" for="bookTitleInput">Título do livro</label>
+        <input class="text-input" id="bookTitleInput" type="text" maxlength="120" placeholder="Ex.: O Monge e o Executivo">
+        <label class="field-label" for="pageInput">Página onde parei</label>
+        <input class="text-input" id="pageInput" type="number" inputmode="numeric" min="0" max="99999" placeholder="Ex.: 48">
+      </section>
+
+      <section class="settings-section">
+        <h3>Aparência</h3>
+        <div class="theme-choice">
+          <button class="choice-btn" id="darkChoice" type="button">☾ Tema escuro</button>
+          <button class="choice-btn" id="lightChoice" type="button">☀ Tema claro</button>
+        </div>
+        <p class="settings-note">O tema escuro é o padrão. Sua escolha fica salva neste dispositivo.</p>
+      </section>
+
+      <section class="settings-section">
+        <h3>Instalação</h3>
+        <button class="wide-btn" id="installFromSettings" type="button">Instalar como aplicativo</button>
+        <p class="settings-note" id="installHelpText">No iPhone: Compartilhar → Adicionar à Tela de Início.</p>
+      </section>
+
+      <section class="settings-section">
+        <h3>Backup e restauração</h3>
+        <p class="settings-note">O progresso fica salvo localmente no aparelho. Faça backups periódicos se quiser poder migrar para outro dispositivo.</p>
+        <div class="settings-actions-stack">
+          <button class="wide-btn" id="backupBtn" type="button">Baixar backup (.json)</button>
+          <label class="wide-btn file-btn" for="restoreInput">Restaurar backup</label>
+          <input id="restoreInput" type="file" accept="application/json,.json" hidden>
+        </div>
+      </section>
+
+      <section class="settings-section danger-zone">
+        <h3>Redefinir</h3>
+        <button class="danger-btn" id="resetAppBtn" type="button">Apagar progresso deste dispositivo</button>
+      </section>
+
+      <section class="settings-section storage-info">
+        <h3>Como os dados são salvos</h3>
+        <p>O progresso e os checklists usam armazenamento local do navegador. O tema também é registrado em um cookie pequeno. Não existe banco de dados nem conta de usuário.</p>
+      </section>
+    </div>
+  </aside>
+
+  <div class="modal" id="installModal" hidden role="dialog" aria-modal="true" aria-labelledby="installModalTitle">
+    <div class="modal-card">
+      <button class="modal-close" id="closeInstallModal" type="button" aria-label="Fechar">✕</button>
+      <span class="eyebrow">INSTALAR NO IPHONE/IPAD</span>
+      <h2 id="installModalTitle">Salvar como aplicativo</h2>
+      <ol class="install-steps">
+        <li>Abra esta página no <strong>Safari</strong>.</li>
+        <li>Toque no botão <strong>Compartilhar</strong>.</li>
+        <li>Escolha <strong>Adicionar à Tela de Início</strong>.</li>
+        <li>Confirme em <strong>Adicionar</strong>.</li>
+      </ol>
+      <button class="primary-btn full-btn" id="shareAppBtn" type="button">Compartilhar esta página</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

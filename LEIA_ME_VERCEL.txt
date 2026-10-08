@@ -1,0 +1,42 @@
+MÉTODO DE LEITURA — PWA PRONTO PARA VERCEL
+
+ARQUIVOS PRINCIPAIS
+- index.html
+- styles.css
+- app.js
+- manifest.webmanifest
+- service-worker.js
+- vercel.json
+- icons/
+
+COMO SUBIR NA VERCEL
+1. Descompacte a pasta.
+2. Entre em vercel.com e crie um novo projeto.
+3. Importe a pasta pelo GitHub OU use a opção de deploy de projeto/pasta.
+4. Como é um site estático, não precisa de framework nem banco de dados.
+5. Depois do deploy, abra a URL HTTPS gerada pela Vercel.
+
+NO IPHONE / IPAD
+1. Abra a URL no Safari.
+2. Toque em Compartilhar.
+3. Escolha “Adicionar à Tela de Início”.
+4. O app abrirá em modo standalone, como um aplicativo.
+
+DADOS LOCAIS
+- O progresso do método, título do livro, página atual e Pomodoro são salvos em localStorage no dispositivo.
+- O tema claro/escuro também é registrado em um cookie pequeno.
+- Não existe servidor, conta ou banco de dados.
+- Se o navegador for limpo ou o app for removido, os dados locais podem ser apagados.
+- Use Configurações > Baixar backup para gerar um arquivo JSON.
+- Use Configurações > Restaurar backup para recuperar ou migrar os dados para outro aparelho.
+
+POR QUE NÃO USAR COOKIES PARA TODO O PROGRESSO?
+Cookies são muito pequenos (tipicamente cerca de 4 KB por cookie) e são enviados em requisições HTTP. Para um PWA sem backend, localStorage é mais adequado para checklists e progresso estruturado. O app continua 100% local, sem banco de dados.
+
+TEMA
+- Padrão: escuro.
+- O botão de lua/sol alterna para o tema claro.
+- A escolha fica salva.
+
+PWA / OFFLINE
+Depois que o site for acessado pelo menos uma vez via HTTPS, o Service Worker guarda o shell principal para uso offline. O navegador controla quando o cache fica disponível.
